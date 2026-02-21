@@ -1,7 +1,10 @@
 {
-  "name": "via",
+  "name": "@via-dev/via",
   "version": "0.1.0",
-  "description": "",
+  "description": "Via is a CLI tool designed to 'learn' from common code patterns and 'use' them to generate new code efficiently.",
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "author": "viping7",
   "type": "commonjs",
@@ -9,6 +12,7 @@
   "scripts": {
     "dev": "ts-node src/cli.ts",
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "start": "node dist/cli.js",
     "l": "tsc & npm link",
     "test": "jest",

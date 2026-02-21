@@ -23,7 +23,7 @@ Currently, Via is optimized for backend patterns in the following ecosystems:
 To install Via globally:
 
 ```bash
-npm install -g via
+npm install -g @via-dev/via
 ```
 
 ## Usage
