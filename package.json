@@ -1,0 +1,59 @@
+{
+  "name": "via",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "author": "viping7",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "ts-node src/cli.ts",
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "l": "tsc & npm link",
+    "test": "jest",
+    "lint": "eslint \"src/**/*.{ts,js}\" --ext .ts,.js",
+    "lint:fix": "eslint \"src/**/*.{ts,js}\" --ext .ts,.js --fix"
+  },
+  "bin": {
+    "via": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@types/figlet": "^1.7.0",
+    "@types/gradient-string": "^1.1.6",
+    "@types/inquirer": "^9.0.9",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "eslint": "^8.45.0",
+    "@typescript-eslint/parser": "^6.8.0",
+    "@typescript-eslint/eslint-plugin": "^6.8.0"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.44",
+    "@ai-sdk/google": "^3.0.29",
+    "@ai-sdk/openai": "^3.0.26",
+    "@hono/node-server": "^1.19.9",
+    "@inquirer/prompts": "^8.2.0",
+    "@toon-format/toon": "^2.1.0",
+    "@types/lodash": "^4.17.21",
+    "ai": "^6.0.77",
+    "chalk": "^4.1.2",
+    "commander": "^14.0.2",
+    "dotenv": "^17.2.4",
+    "figlet": "^1.10.0",
+    "gradient-string": "^3.0.0",
+    "hono": "^4.11.9",
+    "inquirer": "^13.2.2",
+    "lodash": "^4.17.21",
+    "open": "^11.0.0",
+    "ts-morph": "^27.0.2"
+  }
+}
