@@ -7,6 +7,15 @@ import { getViaDataPath } from "../../utils/paths";
 import { gunzipSync } from "zlib";
 import { getLayout } from "./templates/layout";
 
+function normalizePaths(node: any) {
+    if (node.path) {
+        node.path = node.path.replace(/\\/g, '/');
+    }
+    if (node.dependencies) {
+        node.dependencies.forEach(normalizePaths);
+    }
+}
+
 export const createApp = () => {
     const app = new Hono();
     app.use("/*", cors());
@@ -26,6 +35,9 @@ export const createApp = () => {
                 if (existsSync(viaPath)) {
                     const compressed = readFileSync(viaPath);
                     const data = JSON.parse(gunzipSync(compressed).toString());
+                    if (data.deps) {
+                        normalizePaths(data.deps);
+                    }
                     return {
                         name,
                         id,

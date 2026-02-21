@@ -77,7 +77,7 @@ export function getNestedDependencies(
     }
 
     return {
-        path: entryFilePath.replace(/^[/\\]virtual[/\\]?/, ''),
+        path: entryFilePath.replace(/^[/\\]virtual[/\\]?/, '').replace(/\\/g, '/'),
         content,
         dependencies,
         exportedNames,
