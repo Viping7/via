@@ -1,6 +1,6 @@
 {
   "name": "@via-dev/via",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Via is a CLI tool designed to 'learn' from common code patterns and 'use' them to generate new code efficiently.",
   "publishConfig": {
     "access": "public"
@@ -32,13 +32,13 @@
     "@types/inquirer": "^9.0.9",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
+    "@typescript-eslint/eslint-plugin": "^6.8.0",
+    "@typescript-eslint/parser": "^6.8.0",
+    "eslint": "^8.45.0",
     "jest": "^30.2.0",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "eslint": "^8.45.0",
-    "@typescript-eslint/parser": "^6.8.0",
-    "@typescript-eslint/eslint-plugin": "^6.8.0"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.44",
