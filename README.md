@@ -16,15 +16,40 @@ Currently, Via is optimized for backend patterns in the following ecosystems:
 - **Express.js**
 - **Hono.js**
 - **NestJS**
-- **Next.js** (API routes and backend logic)
+- **Next.js** (Beta - API routes and backend logic)
 
-## Installation
 
-To install Via globally:
+## Quick start
 
 ```bash
+
 npm install -g @via-dev/via
+
+cd existing-project
+via learn 
+via list
+via users create user
 ```
+
+## Why Via (not templates)
+
+Most generators start from templates.
+Via starts from your actual codebase.
+
+• No generic folder structures  
+• No forced conventions  
+• No rewriting existing patterns  
+• Works with real projects, not examples  
+
+## AI usage (transparent)
+
+Via uses AI only during `via learn` and only if path is not specified to detect patterns.
+All generation is deterministic and offline-friendly.
+
+• No AI calls during module creation
+• Predictable output
+• No surprise token usage
+
 
 ## Usage
 
