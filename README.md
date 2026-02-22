@@ -1,12 +1,82 @@
 # Via
 
-**Via** is a pattern-aware developer toolkit that helps you capture and reuse code patterns in your project. It "learns" from your existing codebase and allows you to instantiate those patterns (modules) with intelligent, context-aware renaming.
+Via helps you reuse real project patterns instead of rewriting boilerplate.
+
+It learns from your existing codebase and lets you recreate modules
+without repeated AI calls or fragile templates.
+
+> Your code is the source of truth — not scaffolds, not prompts.
+
+## Quick start
+
+```bash
+npm install -g @via-dev/via
+
+cd existing-project
+via learn
+via list
+via users create accounts
+```
+
+## Why Via exists
+
+Via was created to solve a very specific problem:
+
+> Reusing existing code patterns should **not** require repeated AI calls.
+
+In many workflows today, AI is used every time you:
+- generate a similar module
+- rename an entity
+- recreate CRUD logic
+- scaffold the same structure with minor changes
+
+This leads to:
+- unnecessary token usage
+- repeated costs for the same logic
+- unpredictable output
+- reliance on AI for problems that are already solved in your codebase
+
+### Via’s approach
+
+Via uses AI **once**, only to *understand* your project structure.
+
+After that:
+- the learned patterns are stored locally
+- generation is deterministic
+- no AI calls are required
+- no tokens are consumed
+
+If a pattern already exists in your project, Via reuses it directly
+instead of asking an AI model to regenerate it again.
+
+### What this means in practice
+
+- AI helps with **discovery**, not repetition
+- Your existing code becomes the source of truth
+- You don’t pay tokens for minimal changes
+- You get consistent output every time
+- Via works offline once learning is complete
+
+This gives you the benefits of AI **without turning it into a runtime dependency**.
+
+### AI is optional
+
+If you already know the module boundaries:
+- you can run `via learn <folder_path>`
+- select the entry file manually
+- and skip AI entirely
+
+Via will trace dependencies and build the module deterministically.
+
+AI is there when you need it - not when you don’t.
+
+
 
 ## Key Features
 
 - **Pattern Learning**: Extract specific folders or components from your project and save them as reusable modules.
 - **Smart Renaming**: When creating a new instance of a module, Via automatically renames files, classes, variables, and imports while preserving the original casing (PascalCase, camelCase, kebab-case, etc.) and handling plurality.
-- **AI-Powered (Optional)**: Can lean on AI for complex pattern recognition and documentation.
+- **AI-Assisted (Optional)**: Uses AI only for pattern discovery — never for repeated generation.
 - **Web UI**: A built-in documentation server to browse and manage your saved modules.
 
 ## Supported Technologies
@@ -19,37 +89,71 @@ Currently, Via is optimized for backend patterns in the following ecosystems:
 - **Next.js** (Beta - API routes and backend logic)
 
 
-## Quick start
+## AI support (optional, transparent, and secure)
 
-```bash
+Via can use AI to detect modules and patterns from large or complex codebases.
+AI is **optional** and used only during the learning phase.
 
-npm install -g @via-dev/via
+### Supported AI providers
 
-cd existing-project
-via learn 
-via list
-via users create user
-```
+Via supports multiple providers out of the box:
 
-## Why Via (not templates)
+- **OpenAI** (GPT models)
+- **Anthropic** (Claude models)
+- **Google** (Gemini)
+- **Ollama** (locally running open-source models)
 
-Most generators start from templates.
-Via starts from your actual codebase.
+This can be selected or modified using `via config` command.
 
-• No generic folder structures  
-• No forced conventions  
-• No rewriting existing patterns  
-• Works with real projects, not examples  
+### What data is sent to AI
 
-## AI usage (transparent)
+When AI is enabled, **Via sends only project metadata**, never your source code.
 
-Via uses AI only during `via learn` and only if path is not specified to detect patterns.
-All generation is deterministic and offline-friendly.
+This includes:
+- folder paths
+- file names
+- file relationships and imports
+- detected symbols and keywords
+- structural summaries
 
-• No AI calls during module creation
-• Predictable output
-• No surprise token usage
+❌ **Your actual code is never sent to any AI provider.**
 
+This design ensures:
+- code privacy
+- security for private repositories
+- safe usage in enterprise environments
+
+### When AI is used
+
+- AI is used **only during `via learn`** and only if a path is not provided
+- AI helps detect:
+  - logical modules
+  - entry files
+  - structural boundaries
+- AI is **not used** during:
+  - module generation
+  - listing modules
+  - removing modules
+
+All generation after learning is **deterministic and offline-friendly**.
+
+### No lock-in, predictable costs
+
+- You choose the AI provider and model
+- No background AI calls
+- No surprise token usage
+- Once learning is complete, Via works without AI
+
+This gives you the benefits of AI-assisted understanding
+without runtime dependency or exposing your code.
+
+### Local models with Ollama
+
+Via also supports locally running models via **Ollama**.
+This is ideal for:
+- offline environments
+- highly sensitive codebases
+- zero API cost workflows
 
 ## Usage
 
@@ -85,6 +189,24 @@ Explore your learned modules in a beautiful web interface.
 ```bash
 via ui
 ```
+
+### 5. Remove a Module
+Delete a saved module
+
+```bash
+# General syntax: via <module_name> create <new_name>
+via remove <name>
+```
+
+### 5. Configure AI Provider
+
+Configure the AI provider if in AI mode (`via learn` without path)
+
+```bash
+# General syntax: via <module_name> create <new_name>
+via config
+```
+
 
 ## Command Reference
 
