@@ -79,6 +79,18 @@ AI is there when you need it - not when you don’t.
 - **AI-Assisted (Optional)**: Uses AI only for pattern discovery — never for repeated generation.
 - **Web UI**: A built-in documentation server to browse and manage your saved modules.
 
+
+## Language support
+
+Via currently supports **TypeScript-based projects and modules only**.
+
+This allows Via to:
+- understand imports and dependencies accurately
+- perform safe, context-aware renaming
+- validate generated code deterministically
+
+Support for other languages or plain JavaScript may be explored in the future.
+
 ## Supported Technologies
 
 Currently, Via is optimized for backend patterns in the following ecosystems:
