@@ -1,6 +1,6 @@
 {
   "name": "@via-dev/via",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Via is a CLI tool that learns real project patterns and lets you reuse them without boilerplate or templates.",
   "publishConfig": {
     "access": "public"
