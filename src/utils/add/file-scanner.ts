@@ -15,20 +15,21 @@ export const getAllFileAndFolders = async (dir = '', projectRoot = process.cwd()
         const filePath = path.join(currentDir, file);
         const relativePath = path.join(dir, file);
         const stats = await stat(filePath);
-
+        const fileName  = file.replace(/\\/g,'/');
+        const pathName = relativePath.replace(/\\/g,'/');
         if (!stats.isDirectory()) {
             const fileContent = await readFile(filePath, 'utf-8');
             return {
-                fileName: file,
-                path: relativePath,
+                fileName,
+                path: pathName,
                 isDirectory: false,
                 content: fileContent,
             }
         } else {
             const subFolders = await getAllFileAndFolders(relativePath, projectRoot);
             return [{
-                fileName: file,
-                path: relativePath,
+                fileName,
+                path: pathName,
                 isDirectory: true
             }, ...subFolders]
         }
