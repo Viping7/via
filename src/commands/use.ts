@@ -8,7 +8,12 @@ import chalk from "chalk";
 import { isSingluar, pluralize, singularize } from "../utils/use/text";
 import { FileDependencyNode, Module } from "../types";
 
-const PROTECTED_KEYWORDS = new Set(['s3', 'sqs', 'sns', 'lambda', 'dynamodb', 'iam', 'cdk', 'construct', 'stack', 'app', 'stage', 'bucket', 'function', 'handler', 'service', 'controller']);
+const PROTECTED_KEYWORDS = new Set([
+  's3', 'sqs', 'sns', 'lambda', 'dynamodb', 'iam', 'cdk', 'construct', 'stack', 'app', 'stage', 'bucket', 'function', 'handler', 'service', 'controller',
+  'useState', 'useEffect', 'useContext', 'useReducer', 'useCallback', 'useMemo', 'useRef', 'useImperativeHandle', 'useLayoutEffect', 'useDebugValue',
+  'React', 'Next', 'Link', 'Image', 'Head', 'Script',
+  'props', 'children', 'className', 'style', 'ref', 'key', 'id', 'onClick', 'onChange', 'onSubmit'
+]);
 
 export const smartRename = (text: string, originalName: string, newName: string) => {
   if (!originalName || !newName || originalName === newName) return text;

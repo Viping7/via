@@ -4,7 +4,7 @@ import { FileStructure } from "../../types";
 import { IGNORE_LIST } from "../constants";
 import { statSync } from "fs";
 
-const ENTRY_FILE_REGEX = /\.(module|routes|router|stack|construct)\.(ts|js|tsx|jsx)$/;
+const ENTRY_FILE_REGEX = /\.(module|routes|router|stack|construct|component|hook|context|page|layout|template|util|utils)\.(ts|js|tsx|jsx)$/;
 
 export const getAllFileAndFolders = async (dir = '', projectRoot = process.cwd()): Promise<FileStructure[]> => {
     const currentDir = path.join(projectRoot, dir);
@@ -42,6 +42,18 @@ export const readFiles = async (dirPath: string, modulesToProcess: {
     entryFile: string | string[],
     manual: boolean
 }[] = []) => {
+    const stats = statSync(dirPath);
+
+    if (!stats.isDirectory()) {
+        const relativeEntryPath = path.relative(process.cwd(), dirPath);
+        modulesToProcess.push({
+            moduleName: path.basename(dirPath),
+            entryFile: relativeEntryPath,
+            manual: true
+        });
+        return modulesToProcess;
+    }
+
     const files = await readdir(dirPath);
 
     for (const entry of files) {

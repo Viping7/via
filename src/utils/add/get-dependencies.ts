@@ -1,3 +1,4 @@
+import * as path from "path";
 import { Project, ts } from "ts-morph";
 import { FileDependencyNode } from "../../types";
 
@@ -53,12 +54,29 @@ export function getNestedDependencies(
     // Check imports
     const importDeclarations = sourceFile.getImportDeclarations();
     for (const imp of importDeclarations) {
+        const specifier = imp.getModuleSpecifierValue();
         const depSourceFile = imp.getModuleSpecifierSourceFile();
+
         if (depSourceFile && !depSourceFile.isInNodeModules()) {
             const depPath = depSourceFile.getFilePath();
             const depNode = getNestedDependencies(depPath, project, visited);
             if (depNode) {
                 dependencies.push(depNode);
+            }
+        } else if (specifier.startsWith('.') || specifier.startsWith('/')) {
+            // Handle non-source files (CSS, SVG, etc.) if they are relative
+            const sourceFilePath = sourceFile.getFilePath();
+            const depPath = path.resolve(path.dirname(sourceFilePath), specifier);
+            // ts-morph might not find these if they aren't in the project, but we can still track them
+            if (!visited.has(depPath) && (specifier.endsWith('.css') || specifier.endsWith('.scss') || specifier.endsWith('.svg') || specifier.endsWith('.png'))) {
+                visited.add(depPath);
+                // Minimal node for non-TS files
+                dependencies.push({
+                    path: depPath.replace(/^[/\\]virtual[/\\]?/, '').replace(/\\/g, '/'),
+                    content: '', // Content will be handled during 'use' if needed, or we just skip it for now
+                    dependencies: [],
+                    exportedNames: []
+                });
             }
         }
     }
@@ -72,6 +90,48 @@ export function getNestedDependencies(
             const depNode = getNestedDependencies(depPath, project, visited);
             if (depNode) {
                 dependencies.push(depNode);
+            }
+        }
+    }
+
+    // Check dynamic imports: import("./module")
+    const callExpressions = sourceFile.getDescendantsOfKind(ts.SyntaxKind.CallExpression);
+    for (const call of callExpressions) {
+        if (call.getExpression().getKind() === ts.SyntaxKind.ImportKeyword) {
+            const args = call.getArguments();
+            if (args.length > 0) {
+                // Try to resolve the module via ts-morph's symbol resolution
+                const arg = args[0];
+                const symbol = arg.getSymbol();
+                if (symbol) {
+                    const declarations = symbol.getDeclarations();
+                    if (declarations.length > 0) {
+                        const referencedSourceFile = declarations[0].getSourceFile();
+                        if (referencedSourceFile && !referencedSourceFile.isInNodeModules()) {
+                            const depPath = referencedSourceFile.getFilePath();
+                            const depNode = getNestedDependencies(depPath, project, visited);
+                            if (depNode) {
+                                dependencies.push(depNode);
+                            }
+                        }
+                    }
+                } else if (arg.getKind() === ts.SyntaxKind.StringLiteral) {
+                    // Fallback for non-TS files or if symbol resolution fails but it's a relative path
+                    const specifier = (arg as any).getLiteralText();
+                    if (specifier.startsWith('.')) {
+                        const sourceFilePath = sourceFile.getFilePath();
+                        const depPath = path.resolve(path.dirname(sourceFilePath), specifier);
+                        if (!visited.has(depPath) && (specifier.endsWith('.css') || specifier.endsWith('.scss') || specifier.endsWith('.svg') || specifier.endsWith('.png'))) {
+                            visited.add(depPath);
+                            dependencies.push({
+                                path: depPath.replace(/^[/\\]virtual[/\\]?/, '').replace(/\\/g, '/'),
+                                content: '',
+                                dependencies: [],
+                                exportedNames: []
+                            });
+                        }
+                    }
+                }
             }
         }
     }

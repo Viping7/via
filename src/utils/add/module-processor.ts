@@ -1,5 +1,6 @@
 import * as path from "path";
-import { writeFile } from "fs/promises";
+import { writeFile, readFile } from "fs/promises";
+import { readFileSync, existsSync } from "fs";
 import { randomUUID } from "crypto";
 import { Project, ts } from "ts-morph";
 import { gzipSync } from "zlib";
@@ -71,19 +72,63 @@ export const processModules = async (
         });
     }
 
-    const project = new Project({
-        useInMemoryFileSystem: true,
-        compilerOptions: {
-            allowJs: true,
-            target: ts.ScriptTarget.ESNext,
-            module: ts.ModuleKind.CommonJS,
-        }
-    });
+    const findConfig = (dir: string): string | null => {
+        const tsPath = path.join(dir, 'tsconfig.json');
+        const jsPath = path.join(dir, 'jsconfig.json');
+        if (existsSync(tsPath)) return tsPath;
+        if (existsSync(jsPath)) return jsPath;
+        const parent = path.dirname(dir);
+        if (parent === dir) return null;
+        return findConfig(parent);
+    };
 
     const VIRTUAL_ROOT = "/virtual";
+    const configPath = findConfig(process.cwd());
+    const configDir = configPath ? path.dirname(configPath) : process.cwd();
+    const cwdOffset = path.relative(configDir, process.cwd());
+
+    let compilerOptions: any = {
+        allowJs: true,
+        target: ts.ScriptTarget.ESNext,
+        module: ts.ModuleKind.CommonJS,
+    };
+
+    if (configPath) {
+        try {
+            const configText = readFileSync(configPath, 'utf-8');
+            const result = ts.parseConfigFileTextToJson(configPath, configText);
+            const config = result.config;
+
+            if (config && config.compilerOptions) {
+                const options = config.compilerOptions;
+                if (options.baseUrl) {
+                    // baseUrl is relative to config file location
+                    compilerOptions.baseUrl = path.join(VIRTUAL_ROOT, options.baseUrl);
+                } else {
+                    compilerOptions.baseUrl = VIRTUAL_ROOT;
+                }
+                if (options.paths) {
+                    compilerOptions.paths = options.paths;
+                }
+            }
+        } catch (e) {
+            console.warn(`Warning: Could not parse ${configPath}. Path aliases might not be resolved.`);
+        }
+    } else {
+        compilerOptions.baseUrl = VIRTUAL_ROOT;
+    }
+
+    const project = new Project({
+        useInMemoryFileSystem: true,
+        compilerOptions
+    });
+
     for (const file of flattenedFiles) {
         if (file.content !== undefined && !file.isDirectory) {
-            const virtualPath = path.join(VIRTUAL_ROOT, file.path);
+            // file.path is relative to process.cwd(). 
+            // We need it relative to configDir to match baseUrl/paths.
+            const pathRelativeToConfig = path.join(cwdOffset, file.path);
+            const virtualPath = path.join(VIRTUAL_ROOT, pathRelativeToConfig);
             project.createSourceFile(virtualPath, file.content, { overwrite: true });
         }
     }
@@ -92,7 +137,11 @@ export const processModules = async (
         const entryFile = module.entryFile;
         const projectRoot = process.cwd();
         const relativeEntryPath = path.isAbsolute(entryFile) ? path.relative(projectRoot, entryFile) : entryFile;
-        const virtualEntryPath = path.join(VIRTUAL_ROOT, relativeEntryPath);
+
+        // Same here: adjust entry path relative to configDir
+        const entryPathRelativeToConfig = path.join(cwdOffset, relativeEntryPath);
+        const virtualEntryPath = path.join(VIRTUAL_ROOT, entryPathRelativeToConfig);
+
         const deps = getNestedDependencies(virtualEntryPath, project);
         return {
             name: module.moduleName,

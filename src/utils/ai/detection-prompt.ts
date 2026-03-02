@@ -58,10 +58,13 @@ You must recognize patterns specific to each framework:
   - "app/api/<module>/route.ts"
   - "pages/api/<module>.ts"
   - "app/<module>/" (when route + logic are colocated)
+  - "components/" (UI components can be modules)
+  - "hooks/" (custom hooks can be modules)
+  - "contexts/" (state contexts can be modules)
 - Files under app/api or pages/api are **API modules**
-- Shared UI components, hooks, and utilities are NOT modules
-- API route folders represent modules even if only 1 file exists
-- The module entry file is app/api/<module>/route.ts OR pages/api/<module>.ts
+- UI components, hooks, and utilities CAN be modules if they represent a reusable unit of functionality.
+- Next.js App Router special files (page.tsx, layout.tsx, loading.tsx) should be considered as part of their respective modules.
+- The module entry file is the primary file for that component or logic (e.g., page.tsx, index.tsx, or <ComponentName>.tsx).
 
 #### Express / Hono
 - Modules are commonly folder-based:
