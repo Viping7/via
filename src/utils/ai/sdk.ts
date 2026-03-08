@@ -4,7 +4,6 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, Output, ModelMessage } from 'ai';
 import { z } from 'zod';
 import { getConfig } from '../../commands/config';
-import { ModuleType } from '../../schema';
 
 const getModel = async () => {
     const config = await getConfig();
@@ -27,7 +26,7 @@ const getModel = async () => {
 };
 
 
-export const getAiJsonObject = async (messages: ModelMessage[], schema: z.ZodType<ModuleType>) => {
+export const getAiJsonObject = async <T>(messages: ModelMessage[], schema: z.ZodType<T>) => {
     const model = await getModel();
     return streamText({
         model,

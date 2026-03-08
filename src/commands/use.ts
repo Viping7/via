@@ -1,19 +1,60 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
-import { join, dirname } from "path";
+import { join, dirname, basename } from "path";
 import { Project, SourceFile, Node } from "ts-morph";
 import { gunzipSync } from "zlib";
-import { getViaDataPath } from "../utils/paths";
+import { getViaDataPath, resolveExistingPath } from "../utils/paths";
 import chalk from "chalk";
 import { isSingluar, pluralize, singularize } from "../utils/use/text";
 import { FileDependencyNode, Module } from "../types";
+import { generateStorybookContent } from "../utils/ai/storybook";
+import { execSync } from "child_process";
 
 const PROTECTED_KEYWORDS = new Set([
   's3', 'sqs', 'sns', 'lambda', 'dynamodb', 'iam', 'cdk', 'construct', 'stack', 'app', 'stage', 'bucket', 'function', 'handler', 'service', 'controller',
   'useState', 'useEffect', 'useContext', 'useReducer', 'useCallback', 'useMemo', 'useRef', 'useImperativeHandle', 'useLayoutEffect', 'useDebugValue',
   'React', 'Next', 'Link', 'Image', 'Head', 'Script',
-  'props', 'children', 'className', 'style', 'ref', 'key', 'id', 'onClick', 'onChange', 'onSubmit'
+  'props', 'children', 'className', 'style', 'ref', 'key', 'onClick', 'onChange', 'onSubmit'
 ]);
+
+const getPackageManager = () => {
+  if (existsSync(join(process.cwd(), 'yarn.lock'))) return 'yarn';
+  if (existsSync(join(process.cwd(), 'pnpm-lock.yaml'))) return 'pnpm';
+  if (existsSync(join(process.cwd(), 'bun.lockb'))) return 'bun';
+  return 'npm';
+};
+
+const installDependencies = async (deps: string[]) => {
+  const pm = getPackageManager();
+  const command = pm === 'npm' ? `npm install ${deps.join(' ')}` : `${pm} add ${deps.join(' ')}`;
+  console.log(chalk.yellow(`\nInstalling dependencies: ${deps.join(', ')} using ${pm}...`));
+  try {
+    execSync(command, { stdio: 'inherit' });
+    console.log(chalk.green(`✓ Dependencies installed successfully!`));
+  } catch (error) {
+    console.error(chalk.red(`✖ Failed to install dependencies:`), error);
+  }
+};
+
+const checkMissingDependencies = async (externalDeps: string[] = []) => {
+  if (externalDeps.length === 0) return [];
+
+  const packageJsonPath = join(process.cwd(), 'package.json');
+  if (!existsSync(packageJsonPath)) return externalDeps;
+
+  try {
+    const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8'));
+    const allDeps = {
+      ...(packageJson.dependencies || {}),
+      ...(packageJson.devDependencies || {}),
+      ...(packageJson.peerDependencies || {})
+    };
+
+    return externalDeps.filter(dep => !allDeps[dep]);
+  } catch (error) {
+    return externalDeps;
+  }
+};
 
 export const smartRename = (text: string, originalName: string, newName: string) => {
   if (!originalName || !newName || originalName === newName) return text;
@@ -101,8 +142,22 @@ export const use = async (name: string, newName?: string) => {
       return;
     }
 
-    const { originalName, deps } = jsonFile;
+    const { originalName, deps, externalDependencies = [] } = jsonFile;
     const targetName = newName || originalName;
+
+    // Check for missing dependencies
+    const missingDeps = await checkMissingDependencies(externalDependencies);
+    if (missingDeps.length > 0) {
+      const { confirm } = await import("@inquirer/prompts");
+      const shouldInstall = await confirm({
+        message: `${chalk.yellow('This module requires external dependencies:')} ${chalk.cyan(missingDeps.join(', '))}. Install them now?`,
+        default: true
+      });
+      if (shouldInstall) {
+        await installDependencies(missingDeps);
+      }
+    }
+
     const allFiles = flattenDeps([deps]);
 
     const summary = {
@@ -147,8 +202,11 @@ export const use = async (name: string, newName?: string) => {
         sourceFile.replaceWithText(finalContent);
 
         // 3. Save to disk
-        const fullFilePath = join(process.cwd(), renamedPath);
-        const relativePath = renamedPath;
+        const pathAfterRename = renamedPath;
+        const resolvedPath = resolveExistingPath(pathAfterRename);
+        const fullFilePath = join(process.cwd(), resolvedPath);
+        const relativePath = resolvedPath;
+
         await mkdir(dirname(fullFilePath), { recursive: true });
 
         if (existsSync(fullFilePath)) {
@@ -160,8 +218,32 @@ export const use = async (name: string, newName?: string) => {
           await writeFile(fullFilePath, existingFile.getFullText());
           summary.merged.push(relativePath);
         } else {
-          await writeFile(fullFilePath, sourceFile.getFullText());
+          const finalFileContent = sourceFile.getFullText();
+          await writeFile(fullFilePath, finalFileContent);
           summary.created.push(relativePath);
+
+          // 4. Storybook generation for UI components
+          if (relativePath.endsWith(".tsx") || relativePath.endsWith(".jsx")) {
+            const { confirm } = await import("@inquirer/prompts");
+            const shouldGenerateStorybook = await confirm({
+              message: `Generate Storybook for ${chalk.cyan.bold(basename(relativePath))}?`,
+              default: false
+            });
+
+            if (shouldGenerateStorybook) {
+              console.log(chalk.yellow(`\nGenerating Storybook for ${targetName}...`));
+              try {
+                const storyContent = await generateStorybookContent(targetName, finalFileContent);
+                const storyPath = relativePath.replace(/\.(tsx|jsx)$/, ".stories.$1");
+                const fullStoryPath = join(process.cwd(), storyPath);
+                await writeFile(fullStoryPath, storyContent);
+                summary.created.push(storyPath);
+                console.log(chalk.green(`✓ Storybook created: ${storyPath}`));
+              } catch (error) {
+                console.error(chalk.red("✖ Failed to generate Storybook:"), error);
+              }
+            }
+          }
         }
       }
     }

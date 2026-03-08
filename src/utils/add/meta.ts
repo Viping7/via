@@ -10,7 +10,6 @@ export const getFileNamesAndFolders = (files: FileStructure[]) => {
             return acc;
         }
         const folder = file.path.replace(`/${file.fileName}`, '')
-        // console.log(acc, file.folderName);
         if (acc[folder]) {
             acc[folder].push(file.fileName);
         }

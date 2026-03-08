@@ -7,6 +7,8 @@ import { chain } from "lodash";
 import { getViaDataPath } from "../utils/paths";
 import { getFileNamesAndFolders } from "../utils/add/meta";
 import { detectBlocks } from "../utils/ai/blocks";
+import { detectProjectType, ProjectType } from "../utils/ai/project-type";
+import { FRAMEWORK_LABEL_MAP } from "../utils/constants";
 import { showStatusLoader } from "../utils/branding";
 import { configure } from "./config";
 import chalk from "chalk";
@@ -59,9 +61,48 @@ export const learn = async (targetPath?: string) => {
                 }
             }
 
+            const { confirm, select } = await import("@inquirer/prompts");
+            let projectType = detectProjectType();
+
+            if (projectType !== "generic") {
+                const label = (FRAMEWORK_LABEL_MAP as any)[projectType] || projectType;
+                const confirmType = await confirm({
+                    message: `Detected ${chalk.cyan.bold(label)} project. Proceed?`,
+                    default: true
+                });
+
+                if (!confirmType) {
+                    projectType = "generic"; // Reset to allow manual selection
+                }
+            }
+
+            if (projectType === "generic") {
+                projectType = await select({
+                    message: 'Select project type:',
+                    choices: Object.entries(FRAMEWORK_LABEL_MAP).map(([value, name]) => ({
+                        name,
+                        value
+                    })),
+                    default: 'generic'
+                }) as ProjectType;
+            }
+
+            if (projectType === "next") {
+                const extractionType = await select({
+                    message: "What do you want to extract from this Next.js project?",
+                    choices: [
+                        { name: "Front-end (UI, Components, Hooks)", value: "next-frontend" },
+                        { name: "Back-end (API Routes, Server Actions)", value: "next-backend" },
+                        { name: "Both (Full Module)", value: "next" }
+                    ],
+                    default: "next"
+                });
+                projectType = extractionType as ProjectType;
+            }
+
             const foldersWithFiles = getFileNamesAndFolders(flattenedFiles);
             loader = showStatusLoader();
-            const blocks = await detectBlocks(foldersWithFiles);
+            const blocks = await detectBlocks(foldersWithFiles, projectType);
             loader.stop();
 
             if (blocks.modules.length === 0) {

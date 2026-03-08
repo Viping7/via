@@ -58,3 +58,15 @@ export const IGNORE_LIST = [
   "*.swo",
   "*.bak"
 ];
+
+
+export const FRAMEWORK_LABEL_MAP: Record<string, string> = {
+  hono: "Hono.js",
+  express: "Express.js",
+  nest: "NestJS",
+  cdk: "AWS CDK",
+  next: "Next.js",
+  generic: "Generic Pattern",
+  "next-frontend": "Next.js (Frontend)",
+  "next-backend": "Next.js (Backend)",
+};

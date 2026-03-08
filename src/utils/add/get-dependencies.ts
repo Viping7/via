@@ -8,11 +8,13 @@ import { FileDependencyNode } from "../../types";
  * @param entryFilePath Absolute or relative path to the entry file.
  * @param project The ts-morph project instance to use.
  * @param visited Optional set of visited file paths to handle cycles.
+ * @param externalDeps Optional set to collect external dependency names.
  */
 export function getNestedDependencies(
     entryFilePath: string,
     project: Project,
-    visited: Set<string> = new Set()
+    visited: Set<string> = new Set(),
+    externalDeps: Set<string> = new Set()
 ): FileDependencyNode | null {
     if (visited.has(entryFilePath)) {
         return null;
@@ -59,10 +61,16 @@ export function getNestedDependencies(
 
         if (depSourceFile && !depSourceFile.isInNodeModules()) {
             const depPath = depSourceFile.getFilePath();
-            const depNode = getNestedDependencies(depPath, project, visited);
+            const depNode = getNestedDependencies(depPath, project, visited, externalDeps);
             if (depNode) {
                 dependencies.push(depNode);
             }
+        } else if (depSourceFile?.isInNodeModules()) {
+            // Track external dependency
+            const packageName = specifier.startsWith('@')
+                ? specifier.split('/').slice(0, 2).join('/')
+                : specifier.split('/')[0];
+            externalDeps.add(packageName);
         } else if (specifier.startsWith('.') || specifier.startsWith('/')) {
             // Handle non-source files (CSS, SVG, etc.) if they are relative
             const sourceFilePath = sourceFile.getFilePath();
@@ -78,6 +86,12 @@ export function getNestedDependencies(
                     exportedNames: []
                 });
             }
+        } else if (!specifier.startsWith('.') && !specifier.startsWith('/')) {
+            // Likely a node module that ts-morph didn't resolve to a file
+            const packageName = specifier.startsWith('@')
+                ? specifier.split('/').slice(0, 2).join('/')
+                : specifier.split('/')[0];
+            externalDeps.add(packageName);
         }
     }
 
@@ -87,7 +101,7 @@ export function getNestedDependencies(
         const depSourceFile = exp.getModuleSpecifierSourceFile();
         if (depSourceFile && !depSourceFile.isInNodeModules()) {
             const depPath = depSourceFile.getFilePath();
-            const depNode = getNestedDependencies(depPath, project, visited);
+            const depNode = getNestedDependencies(depPath, project, visited, externalDeps);
             if (depNode) {
                 dependencies.push(depNode);
             }
@@ -109,9 +123,17 @@ export function getNestedDependencies(
                         const referencedSourceFile = declarations[0].getSourceFile();
                         if (referencedSourceFile && !referencedSourceFile.isInNodeModules()) {
                             const depPath = referencedSourceFile.getFilePath();
-                            const depNode = getNestedDependencies(depPath, project, visited);
+                            const depNode = getNestedDependencies(depPath, project, visited, externalDeps);
                             if (depNode) {
                                 dependencies.push(depNode);
+                            }
+                        } else if (referencedSourceFile?.isInNodeModules()) {
+                            const specifier = arg.getKind() === ts.SyntaxKind.StringLiteral ? (arg as any).getLiteralText() : "";
+                            if (specifier) {
+                                const packageName = specifier.startsWith('@')
+                                    ? specifier.split('/').slice(0, 2).join('/')
+                                    : specifier.split('/')[0];
+                                externalDeps.add(packageName);
                             }
                         }
                     }
@@ -130,6 +152,12 @@ export function getNestedDependencies(
                                 exportedNames: []
                             });
                         }
+                    } else if (!specifier.startsWith('/')) {
+                        // External module
+                        const packageName = specifier.startsWith('@')
+                            ? specifier.split('/').slice(0, 2).join('/')
+                            : specifier.split('/')[0];
+                        externalDeps.add(packageName);
                     }
                 }
             }

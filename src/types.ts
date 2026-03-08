@@ -1,3 +1,7 @@
+import { ModelMessage } from "ai";
+
+export { ModelMessage };
+
 export type FileStructure = {
     fileName: string,
     path: string,
@@ -21,4 +25,5 @@ export type Module = {
     originalName: string;
     exportedNames: string[];
     deps: FileDependencyNode;
+    externalDependencies?: string[];
 }

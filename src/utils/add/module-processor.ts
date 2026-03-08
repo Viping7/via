@@ -5,7 +5,15 @@ import { randomUUID } from "crypto";
 import { Project, ts } from "ts-morph";
 import { gzipSync } from "zlib";
 import { getNestedDependencies } from "./get-dependencies";
-import { FileStructure, Mapping } from "../../types";
+import { FileStructure, Mapping, Module } from "../../types";
+
+const BUILTIN_MODULES = new Set([
+    'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'console', 'constants',
+    'crypto', 'dgram', 'dns', 'domain', 'events', 'fs', 'http', 'http2', 'https', 'inspector',
+    'module', 'net', 'os', 'path', 'perf_hooks', 'process', 'punycode', 'querystring',
+    'readline', 'repl', 'stream', 'string_decoder', 'timers', 'tls', 'trace_events', 'tty',
+    'url', 'util', 'v8', 'vm', 'worker_threads', 'zlib'
+]);
 
 export const processModules = async (
     modules: { moduleName: string; entryFile: string; manual?: boolean, originalName?: string }[],
@@ -133,7 +141,7 @@ export const processModules = async (
         }
     }
 
-    const components = modulesToProcess.map(module => {
+    const components: Module[] = modulesToProcess.map(module => {
         const entryFile = module.entryFile;
         const projectRoot = process.cwd();
         const relativeEntryPath = path.isAbsolute(entryFile) ? path.relative(projectRoot, entryFile) : entryFile;
@@ -142,12 +150,18 @@ export const processModules = async (
         const entryPathRelativeToConfig = path.join(cwdOffset, relativeEntryPath);
         const virtualEntryPath = path.join(VIRTUAL_ROOT, entryPathRelativeToConfig);
 
-        const deps = getNestedDependencies(virtualEntryPath, project);
+        const externalDepsSet = new Set<string>();
+        const deps = getNestedDependencies(virtualEntryPath, project, new Set(), externalDepsSet);
+
+        // Filter out built-ins
+        const externalDependencies = Array.from(externalDepsSet).filter(dep => !BUILTIN_MODULES.has(dep));
+
         return {
             name: module.moduleName,
-            originalName: module.originalName,
+            originalName: module.originalName || "",
             exportedNames: deps?.exportedNames || [],
-            deps
+            deps: deps!,
+            externalDependencies
         }
     });
 
@@ -161,6 +175,9 @@ export const processModules = async (
 
         const chalk = (await import('chalk')).default;
         console.log(`\n${chalk.green.bold('✓')} Module ${chalk.cyan(component.name)} saved successfully!`);
+        if (component.externalDependencies && component.externalDependencies.length > 0) {
+            console.log(`${chalk.gray('Dependencies:')} ${chalk.yellow(component.externalDependencies.join(', '))}`);
+        }
         console.log(`${chalk.gray('Example usage:')} ${chalk.white(`via ${component.name} create [newName]`)}\n`);
     }
 
